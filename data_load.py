@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.image as mpimg
 import pandas as pd
 import cv2
+import random
 
 
 class FacialKeypointsDataset(Dataset):
@@ -159,3 +160,63 @@ class ToTensor(object):
         
         return {'image': torch.from_numpy(image),
                 'keypoints': torch.from_numpy(key_pts)}
+
+class Augment(object):
+    """Data augmentation of the trainning set"""
+
+    def __init__(self):
+        self.transforms = ['unchange', 'horizontal_flip', 'rotate_90', 'rotate_minus_90']
+
+    def __call__(self, sample):
+        image, key_pts = sample['image'], sample['keypoints']
+
+        transform = random.randint(0, len(self.transforms)-1)
+        
+        # horizontal_flip
+        if transform == 1:
+            # image transform
+            (h, _) = image.shape[:2]
+            image = cv2.flip(image, 1)
+
+            # coordinate transform
+            mapping = [[1,8,18], [18,22,45], [37,40,83], [41,42,89], [32,33,68],
+                       [49,51,104], [56,57,116], [61,62,126], [66,66,134]]
+
+            for key in mapping:
+                start = key[0]
+                end = key[1]
+                const = key[2]
+
+                while start <= end:
+                    mirro = const - start
+                    key_pts[[start, end], :] = key_pts[[end, start], :]
+                    start += 1
+            key_pts[:, 0] = h - key_pts[:, 0]
+
+        # rotate -90 degree
+        elif transform == 2:
+            (h, w) = image.shape[:2]
+            center = (w / 2, h / 2)
+
+            M = cv2.getRotationMatrix2D(center, -90, 1)
+            image = cv2.warpAffine(image, M, (w, h))
+
+            # transform the coordinates
+            key_pts[:, [0, 1]] = key_pts[:, [1, 0]]
+            key_pts[:, 0] = h - key_pts[:, 0]
+        # rotate 90 degree
+        elif transform == 3:
+            (h, w) = image.shape[:2]
+            center = (w / 2, h / 2)
+
+            M = cv2.getRotationMatrix2D(center, 90, 1)
+            image = cv2.warpAffine(image, M, (w, h))
+
+            # transform the coordinates
+            key_pts[:, [0, 1]] = key_pts[:, [1, 0]]
+            key_pts[:, 1] = h - key_pts[:, 1]
+
+        return {'image': image, 'keypoints': key_pts} 
+
+
+
