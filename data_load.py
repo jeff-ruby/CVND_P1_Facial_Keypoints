@@ -165,8 +165,9 @@ class Augment(object):
     """Data augmentation of the trainning set"""
 
     def __init__(self):
-        self.transforms = ['unchange', 'horizontal_flip', 'rotate_90', 'rotate_minus_90']
-
+        #self.transforms = ['unchange', 'horizontal_flip', 'rotate_90', 'rotate_minus_90']
+        self.transforms = ['unchange', 'horizontal_flip']
+        
     def __call__(self, sample):
         image, key_pts = sample['image'], sample['keypoints']
 
@@ -189,7 +190,8 @@ class Augment(object):
 
                 while start <= end:
                     mirro = const - start
-                    key_pts[[start, end], :] = key_pts[[end, start], :]
+                    #print('start:{}, mirro:{}'.format(start, mirro))
+                    key_pts[[start-1, mirro-1], :] = key_pts[[mirro-1, start-1], :]
                     start += 1
             key_pts[:, 0] = h - key_pts[:, 0]
 
